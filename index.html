@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2d3e4e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    .note-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .note {
+      background-color: #f3f3f3;
+      color: #333;
+      padding: 15px;
+      border-radius: 8px;
+      width: 200px;
+      min-height: 100px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    .note p {
+      margin: 0;
+    }
+    .note-date {
+      font-size: 0.8rem;
+      color: #555;
+      margin-top: 10px;
+    }
+    .delete-button {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      cursor: pointer;
+      color: #555;
+    }
+    .note-input {
+      width: 80%;
+      padding: 10px;
+      font-size: 1rem;
+      margin: 20px 0;
+      border-radius: 5px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function NotesApp() {
+      const [notes, setNotes] = useState([]);
+      const [newNote, setNewNote] = useState("");
+
+      // Fetch notes from backend
+      useEffect(() => {
+        fetch('/api/notes')
+          .then(response => response.json())
+          .then(data => setNotes(data));
+      }, []);
+
+      // Add a new note
+      const addNote = () => {
+        if (newNote.trim() === "") return;
+        const note = { content: newNote, date: new Date().toISOString() };
+        
+        fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(note)
+        })
+          .then(response => response.json())
+          .then(savedNote => {
+            setNotes([...notes, savedNote]);
+            setNewNote("");
+          });
+      };
+
+      // Delete a note
+      const deleteNote = (id) => {
+        fetch(`/api/notes/${id}`, { method: 'DELETE' })
+          .then(() => setNotes(notes.filter(note => note.id !== id)));
+      };
+
+      return (
+        <div>
+          <h1>Notes</h1>
+          <input
+            className="note-input"
+            placeholder="Take a note..."
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addNote()}
+          />
+          <div className="note-container">
+            {notes.map(note => (
+              <div className="note" key={note.id}>
+                <p>{note.content}</p>
+                <p className="note-date">{new Date(note.date).toLocaleString()}</p>
+                <span className="delete-button" onClick={() => deleteNote(note.id)}>🗑️</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<NotesApp />);
+  </script>
+</body>
+</html>
